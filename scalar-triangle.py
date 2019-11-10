@@ -1,35 +1,61 @@
 import scipy as sc
-from scipy.integrate import dblquad
-from numpy import zeros,sqrt
+from scipy.integrate import quad
+from numpy import zeros,log,real
 import matplotlib.pyplot as plt
 import cmath
+from  numpy.lib import scimath
 
-def complex_quad(func,a1,b1,a2,b2):
-    def Real(x,y):
-        return sc.real(func(x,y))
-    def Imag(x,y):
-        return sc.imag(func(x,y))
-    real_int = dblquad(Real,a1,b1,lambda x: a2,lambda x: b2)
-    imag_int = dblquad(Imag,a1,b1,lambda x: a2,lambda x: b2)
+def complex_quad(func,a1,a2):
+    def Real(x):
+        return sc.real(func(x))
+    def Imag(x):
+        return sc.imag(func(x))
+    real_int = quad(Real, a1, a2)
+    imag_int = quad(Imag, a1, a2)
     return (real_int[0],imag_int[0])
 
-eps = 1
-length = 15
-m_pi = .135
-m = .1
-s = sc.linspace(4*m**2,0.1,length)
+n = 10**(-6)
+eps = -.00001
+length = 300
+m_pi = .100
+m = .100 
+s = sc.linspace(n,1,length)
 Re = zeros((length))
 Im = zeros((length))
-norm = complex_quad(lambda x1,x2: -1./(x1*x2*m**2 + x1*(1.-x1-x2)*m**2 - m**2 - 1j*eps),0.,1.,0.,1.)
+t = .77526**2-1j*.77526*.1491
+
+
+def a(y):
+    return y
+    
+def b(x,y):
+    return  y*(x-1.) 
+    
+def c(x,y,t):
+    return (1.-x)*m**2 + x*(x-1.)*m**2 + x*t 
+    
+def d(x,y,t):
+    return b(x,y)**2 - 4.*a(y)*c(x,y,t)
+    
+def ym(x,y,t):
+    return (b(x,y)-scimath.sqrt(d(x,y,t)))/(2.*a(y))
+def yp(x,y,t):
+    return (b(x,y)+scimath.sqrt(d(x,y,t)))/(2.*a(y))
+
+
+norm = complex_quad((lambda x: (1./scimath.sqrt(d(x,n,t))) * (scimath.log( (1.-x+ym(x,n,t))/ym(x,n,t) ) - scimath.log( (1.-x+yp(x,n,t))/yp(x,n,t) ))) ,0,1) 
+print( norm)
+    
 
 for i in range(len(s)):
-    a = complex_quad(lambda x1,x2: -1./(x1*x2*m**2 + x1*(1.-x1-x2)*m**2 + x2*(1.-x1-x2)*s[i] - m**2) ,0.,1.,0.,1.)
-    #a = complex_quad(lambda x1,x2: -1./(x1*x2*m**2 + x1*(1.-x1-x2)*m**2 + x2*(1.-x1-x2)*s[i] - m**2 )+ sc.pi*1j*2/cmath.sqrt((1.-x1)**2 - 4.*(1.-x1+x1**2)*m**2/s[i]),0.,1.,0.,1.)
-    #a = complex_quad(lambda x1,x2: -1./(x1*x2*m**2 + x1*(1.-x1-x2)*m**2 + x2*(1.-x1-x2)*s[i] - m**2 - 1j**eps),0.,1.,0.,1.)
-    Re[i] = a[0]
-    Im[i] = a[1]
+    e = s[i]
+    val = complex_quad((lambda x: (1./scimath.sqrt(d(x,e,t))) * (scimath.log( (1.-x+ym(x,e,t))/ym(x,e,t) ) - scimath.log( (1.-x+yp(x,e,t))/yp(x,e,t) ))) ,0,1)
+    Re[i] = val[0]
+    Im[i] = val[1]
 
-plt.plot(sqrt(s)/m_pi,Re/norm[0],label='real part')
-plt.plot(sqrt(s)/m_pi,Im/norm[1],label='imaginary part')
+plt.xlabel(r'$\sqrt{s}/m_q$')
+plt.ylabel(r'$\mathcal{M}(s)/\mathcal{M}(0)$')
+plt.plot(scimath.sqrt(s)/m_pi,Re/norm[0],label='real part')
+plt.plot(scimath.sqrt(s)/m,Im/norm[0],label='imaginary part')
 plt.legend()
 plt.show()
